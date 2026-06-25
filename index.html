@@ -139,6 +139,35 @@
     color: var(--ink);
   }
 
+  .search-wrap {
+    position: relative;
+    margin-bottom: 16px;
+  }
+
+  .search-wrap svg {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 15px;
+    height: 15px;
+    color: var(--ink-soft);
+    pointer-events: none;
+  }
+
+  #search-input {
+    width: 100%;
+    font-family: 'Lato', sans-serif;
+    font-size: 14px;
+    padding: 11px 14px 11px 38px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: #fff;
+    color: var(--ink);
+  }
+
+  #search-input::placeholder { color: var(--ink-soft); }
+
   button {
     font-family: 'Lato', sans-serif;
     cursor: pointer;
@@ -396,6 +425,11 @@
     </div>
   </div>
 
+  <div class="search-wrap">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input type="text" id="search-input" placeholder="Buscar por nome ou telefone…" autocomplete="off" />
+  </div>
+
   <div class="toolbar">
     <div class="filters">
       <select id="filter-status">
@@ -498,11 +532,22 @@
     var filterStatus = document.getElementById('filter-status').value;
     var filterProfissional = document.getElementById('filter-profissional').value;
     var sortMode = document.getElementById('filter-sort').value;
+    var searchTerm = document.getElementById('search-input').value.trim().toLowerCase();
+    var searchDigits = searchTerm.replace(/\D/g,'');
 
     var visible = clients.filter(function(c){
       var statusOk = filterStatus === 'todos' || c.status === filterStatus;
       var profOk = filterProfissional === 'todas' || (c.profissional || 'Sem preferência') === filterProfissional;
-      return statusOk && profOk;
+
+      var searchOk = true;
+      if(searchTerm){
+        var nomeMatch = String(c.nome || '').toLowerCase().indexOf(searchTerm) !== -1;
+        var telDigits = String(c.telefone || '').replace(/\D/g,'');
+        var telMatch = searchDigits && telDigits.indexOf(searchDigits) !== -1;
+        searchOk = nomeMatch || telMatch;
+      }
+
+      return statusOk && profOk && searchOk;
     });
 
     if(sortMode === 'nome'){
@@ -518,6 +563,16 @@
 
     if(clients.length === 0){
       container.innerHTML = '';
+      empty.querySelector('p:nth-child(2)').textContent = 'Nenhuma cliente na lista de espera ainda.';
+      empty.querySelector('p:nth-child(3)').textContent = 'Clique em "Adicionar cliente" para começar.';
+      empty.style.display = 'block';
+      return;
+    }
+
+    if(visible.length === 0){
+      container.innerHTML = '';
+      empty.querySelector('p:nth-child(2)').textContent = 'Nenhuma cliente encontrada.';
+      empty.querySelector('p:nth-child(3)').textContent = 'Tente ajustar a busca ou os filtros.';
       empty.style.display = 'block';
       return;
     }
@@ -664,6 +719,7 @@
   document.getElementById('filter-status').addEventListener('change', render);
   document.getElementById('filter-profissional').addEventListener('change', render);
   document.getElementById('filter-sort').addEventListener('change', render);
+  document.getElementById('search-input').addEventListener('input', render);
   document.getElementById('btn-refresh').addEventListener('click', function(){ loadClients(false); });
 
   loadClients(false);
